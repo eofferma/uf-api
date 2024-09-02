@@ -12,16 +12,13 @@ const currencyConversionCache =
 const bcentralUrl = "https://www.bcentral.cl/web/banco-central/inicio";
 
 let startDate = new Date();
-let dailyUfValue = {
+let dailyIndicator = {
   today: startDate,
   uf: 0,
+  dolar: 0,
 };
 
-function retrieveUfValue() {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-  const agent = new https.Agent({
-    rejectUnauthorized: false,
-  });
+function getHttp() {
   return axios({
     method: "get",
     url: bcentralUrl,
@@ -37,7 +34,35 @@ function retrieveUfValue() {
         "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
       httpsAgent: agent,
     },
-  })
+  });
+}
+
+function retrieveDolarValue() {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  const agent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+  return getHttp()
+    .then((response) => {
+      const html = htmlParser.parse(response.data);
+      const values = html
+        .querySelectorAll(
+          "#_BcentralIndicadoresViewer_INSTANCE_pLcePZ0Eybi8_myTooltipDelegate div.fin-indicators div.col-6",
+        )[2]
+        .querySelectorAll("p");
+      const dolarHtml = htmlParser.parse(values[1].innerHTML);
+      const dolarValue = dolarHtml.childNodes[0];
+      return dolarValue.rawText.replace(/[$\r\n\s]+/g, "");
+    })
+    .catch((err) => console.error(err));
+}
+
+function retrieveUfValue() {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  const agent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+  return getHttp()
     .then((response) => {
       const html = htmlParser.parse(response.data);
       const values = html.querySelectorAll(
@@ -66,17 +91,17 @@ app.get("/uf", (req, res) => {
   const reqDate = new Date();
   const dateDiff = differenceInHours(reqDate, startDate);
 
-  if (dailyUfValue.uf === 0 || dateDiff >= 24) {
+  if (dailyIndicator.uf === 0 || dateDiff >= 24) {
     console.log("Retrieving UF value");
     startDate = reqDate;
     retrieveUfValue()
       .then((data) => {
         console.log("Retrieved UF value: ", data);
-        dailyUfValue = {
+        dailyIndicator = {
           today: startDate,
           uf: data.replace(/\./g, "").replace(",", "."),
         };
-        res.status(200).json(dailyUfValue);
+        res.status(200).json(dailyIndicator);
       })
       .catch((err) => {
         console.error(err);
@@ -86,8 +111,37 @@ app.get("/uf", (req, res) => {
         });
       });
   } else {
-    console.log("Using cached UF value", dailyUfValue.uf);
-    res.status(200).json(dailyUfValue);
+    console.log("Using cached UF value", dailyIndicator.uf);
+    res.status(200).json(dailyIndicator);
+  }
+});
+
+app.get("/dolar", (req, res) => {
+  const reqDate = new Date();
+  const dateDiff = differenceInHours(reqDate, startDate);
+
+  if (dailyIndicator.dolar === 0 || dateDiff >= 24) {
+    console.log("Retrieving Dolar value");
+    startDate = reqDate;
+    retrieveDolarValue()
+      .then((data) => {
+        console.log("Retrieved Dolar value: ", data);
+        dailyIndicator = {
+          today: startDate,
+          dolar: data.replace(/\./g, "").replace(",", "."),
+        };
+        res.status(200).json(dailyIndicator);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(400).json({
+          status: 400,
+          msg: err,
+        });
+      });
+  } else {
+    console.log("Using cached Dolar value", dailyIndicator.dolar);
+    res.status(200).json(dailyIndicator);
   }
 });
 
