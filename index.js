@@ -14,8 +14,8 @@ const bcentralUrl = "https://www.bcentral.cl/web/banco-central/inicio";
 let startDate = new Date();
 let dailyIndicator = {
   today: startDate,
-  uf: 0,
-  dolar: 0,
+  uf: undefined,
+  dolar: undefined,
 };
 
 function getHttp() {
@@ -90,8 +90,7 @@ app.use(
 app.get("/uf", (req, res) => {
   const reqDate = new Date();
   const dateDiff = differenceInHours(reqDate, startDate);
-
-  if (dailyIndicator.uf === 0 || dateDiff >= 24) {
+  if (dailyIndicator.uf === undefined || dateDiff >= 24) {
     console.log("Retrieving UF value");
     startDate = reqDate;
     retrieveUfValue()
@@ -120,7 +119,7 @@ app.get("/dolar", (req, res) => {
   const reqDate = new Date();
   const dateDiff = differenceInHours(reqDate, startDate);
 
-  if (dailyIndicator.dolar === 0 || dateDiff >= 24) {
+  if (dailyIndicator.dolar == undefined || dateDiff >= 24) {
     console.log("Retrieving Dolar value");
     startDate = reqDate;
     retrieveDolarValue()
