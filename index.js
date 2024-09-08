@@ -52,7 +52,7 @@ function retrieveDolarValue() {
         .querySelectorAll("p");
       const dolarHtml = htmlParser.parse(values[1].innerHTML);
       const dolarValue = dolarHtml.childNodes[0];
-      return dolarValue.rawText.replace(/[$\r\n\s]+/g, "");
+      return dolarValue.rawText.replace(/[$\r\n\s]+/g, "").split("/")[0];
     })
     .catch((err) => console.error(err));
 }
